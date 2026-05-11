@@ -34,6 +34,7 @@ interface GameConfig {
 interface Settings {
   'diffLog.fontSize': number;
   'diffLog.pollingInterval': number;
+  'diffLog.maxHistorySlices': number;
   'diffLog.headingStyle': 'default' | 'distinct';
   'state.propertyOrder': PropertyOrder;
 }
@@ -185,12 +186,18 @@ export const removeLockPath = (path: Path) => {
   setStore('gameConfig', 'lockedPaths', newPaths);
 };
 
+export const clearLockPaths = () => {
+  setStore('gameConfig', 'lockedPaths', []);
+};
+
 export const setSetting = <T extends keyof Store['settings']>(
   setting: T,
   value: Store['settings'][T],
 ) => {
   setStore('settings', setting, value);
 };
+
+const getMaxHistorySlices = () => store.settings['diffLog.maxHistorySlices'];
 
 export async function startTrackingFrames() {
   let timeout = 0;
@@ -222,8 +229,9 @@ export async function startTrackingFrames() {
             passage: diffPackage.passage,
             changes: diffPackage.diffs,
           };
+          const maxFrames = getMaxHistorySlices();
 
-          setDiffFrames((cur) => [newFrame, ...cur].slice(0, 50));
+          setDiffFrames((cur) => [newFrame, ...cur].slice(0, maxFrames));
           setStateFrames((cur) => {
             const latestFrame = cur[0];
             if (!latestFrame) return cur;
@@ -233,7 +241,7 @@ export async function startTrackingFrames() {
               state: newState,
               diffingFrame: newFrame,
             };
-            return [newStateFrame, ...cur].slice(0, 50);
+            return [newStateFrame, ...cur].slice(0, maxFrames);
           });
         }
       }
@@ -293,6 +301,7 @@ function loadGlobalSettings() {
   const defaultSettings: Settings = {
     ['diffLog.fontSize']: 14,
     ['diffLog.pollingInterval']: 200,
+    ['diffLog.maxHistorySlices']: 50,
     ['diffLog.headingStyle']: 'default',
     ['state.propertyOrder']: 'type',
   };
@@ -308,6 +317,12 @@ function saveGlobalSettings() {
 
 createEffect(() => {
   if (store.settings) saveGlobalSettings();
+});
+
+createEffect(() => {
+  const maxFrames = store.settings['diffLog.maxHistorySlices'];
+  setDiffFrames((cur) => cur.slice(0, maxFrames));
+  setStateFrames((cur) => cur.slice(0, maxFrames));
 });
 
 createEffect(() => {
