@@ -1,5 +1,6 @@
 import { addWatchlistPath, getWatchlistPaths } from '@/devtools-panel/store';
 import { PrettyPath } from '@/devtools-panel/ui/display/PrettyPath';
+import { createFilterMenuItems } from '@/devtools-panel/views/util/filter-path';
 import { pathEquals } from '@/shared/path-equals';
 import { Path } from '@/shared/shared-types';
 
@@ -19,20 +20,17 @@ export function DiffPath(props: {
     const path = fullPath();
     const isWatchlisted = () => getWatchlistPaths().some((item) => pathEquals(item, path));
 
-    createContextMenuHandler([
-      {
-        label: `Filter out changes to "${path.join('.')}"`,
-        onClick: () => props.onAddFilter(path),
-      },
-      {
-        label: () =>
-          isWatchlisted()
-            ? `Already in watchlist: "${path.join('.')}"`
-            : `Add "${path.join('.')}" to watchlist`,
-        onClick: () => addWatchlistPath(path),
-        disabled: () => isWatchlisted(),
-      },
-    ])(event);
+    const filterItems = createFilterMenuItems(path, props.onAddFilter);
+    const watchlistItem = {
+      label: () =>
+        isWatchlisted()
+          ? `Already in watchlist: "${path.join('.')}"`
+          : `Add "${path.join('.')}" to watchlist`,
+      onClick: () => addWatchlistPath(path),
+      disabled: () => isWatchlisted(),
+    };
+
+    createContextMenuHandler([...filterItems, watchlistItem])(event);
   };
 
   return (

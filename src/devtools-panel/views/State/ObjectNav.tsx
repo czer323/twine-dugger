@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { createMemo, For } from 'solid-js';
 
 import {
+  addFilteredPath,
   addLockPath,
   addWatchlistPath,
   createGetSetting,
@@ -14,6 +15,7 @@ import {
 } from '@/devtools-panel/store';
 import { showPromptDialog } from '@/devtools-panel/ui/util/Prompt';
 import { getLockStatus } from '@/devtools-panel/views/State/lock-helper';
+import { createFilterMenuItems } from '@/devtools-panel/views/util/filter-path';
 import { getObjectPathValue } from '@/shared/get-object-path-value';
 import { pathEquals } from '@/shared/path-equals';
 import {
@@ -148,6 +150,7 @@ export function ObjectNav(props: Props) {
                 onClick={() => handlePropertyClick(child.text)}
                 onDelete={() => handleDelete(childPath())}
                 onDuplicate={() => onDuplicate(child.text)}
+                path={childPath()}
               />
             );
           }}
@@ -163,6 +166,7 @@ interface ContainerChild {
 }
 
 interface NavItemProps {
+  path: Path;
   child: ContainerChild;
   childPath: Path;
   active: boolean;
@@ -176,8 +180,8 @@ interface NavItemProps {
 function NavItem(props: NavItemProps) {
   const isWatchlisted = () => getWatchlistPaths().some((path) => pathEquals(path, props.childPath));
 
-  const onContextMenu = (event: MouseEvent) =>
-    createContextMenuHandler([
+  const onContextMenu = (event: MouseEvent) => {
+    const baseItems = [
       {
         disabled: () => props.lockStatus === 'ancestor-lock',
         label: () => {
@@ -205,7 +209,13 @@ function NavItem(props: NavItemProps) {
         onClick: () => props.onDelete(),
         disabled: () => props.lockStatus !== 'unlocked',
       },
-    ])(event);
+    ];
+
+    // Merge note: watchlist branch inserts its watchlist action between base items and filter items.
+    const filterItems = createFilterMenuItems(props.path, addFilteredPath);
+
+    createContextMenuHandler([...baseItems, ...filterItems])(event);
+  };
 
   return (
     <li onContextMenu={onContextMenu}>
