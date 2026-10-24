@@ -1,6 +1,7 @@
 import type {
   JSONSafeArray,
   JSONSafeContainer,
+  JSONSafeDate,
   JSONSafeObject,
   JSONSafeValue,
   Path,
@@ -163,4 +164,9 @@ export function getContainerKeyLabel(container: JSONSafeContainer, key: string |
   if (typeof key === 'string') return key;
   const isSet = Array.isArray(container) && container[0] === SET_MARKER;
   return String(isSet ? key - 1 : key);
+}
+
+export function formatJsonSafeDate({ Y, M, D, h, m, s }: JSONSafeDate): string {
+  const pad = (n: number) => `${n}`.padStart(2, '0');
+  return `${Y}-${pad(M)}-${pad(D)} ${pad(h)}:${pad(m)}:${pad(s)}`;
 }
